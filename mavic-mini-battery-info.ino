@@ -5,7 +5,7 @@ Bodmer for fast TFT library - https://github.com/Bodmer/TFT_ST7735
 Alain Aeropic - for BatMan inspiration - https://www.thingiverse.com/thing:4235767 
 */
 
-#define VERSION   "v1.0"
+#define VERSION   "v1.1"
 
 #include <TFT_ST7735.h> // Graphics and font library for ST7735 driver chip
 #include <SPI.h>
