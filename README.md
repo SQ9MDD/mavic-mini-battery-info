@@ -1,4 +1,4 @@
-# DJI Mavic Mini Battery Info
+# DJI Mavic Mini Battery Info (ported to platformIO)
 
 
 Because Mavic Mini battery has not charge level indicator (like other DJI batteries) with this device you are able to quickly check Mavic Mini battery status, level of charge and other informations.
@@ -66,46 +66,3 @@ all parts can be purchased on Aliexpress for less than $6
 |D9               |     CS     |                         |
 |ICSP3            |     SCL    |                         | 
 |ICSP4            |     SDA    |                         |
-
-## compiling
-
-### required libraries
-
-#### following TFT library needs to be installed from .ZIP archvive
-
-- download [zip](https://github.com/Bodmer/TFT_ST7735/archive/master.zip) and install in Arduino IDE (Sketch -> Include library -> Add .ZIP library)
-- [Bodmer TFT_ST7735 v0.17](https://github.com/Bodmer/TFT_ST7735)
-
-#### dependencies which can be installed from Arduino IDE
-- (Sketch -> Include library -> Manage libraries...)
-- [Adafruit_GFX_Library v1.8.3](https://github.com/adafruit/Adafruit-GFX-Library)
-- [Adafruit_BusIO v1.3.0](https://github.com/adafruit/Adafruit_BusIO)
-
-#### modify TFT_ST7735 library to fit in Nano flash memory
-
-modify ${HOME}/Arduino/libraries/TFT_ST7735/User_Setup.h
-
-uncomment following lines at top of the file
-
-``` #define TAB_COLOUR INITR_BLACKTAB ```
-
-comment any other TAB_COLOUR line, it should look like
-
-```
-//#define TAB_COLOUR INITB
-//#define TAB_COLOUR INITR_GREENTAB
-//#define TAB_COLOUR INITR_REDTAB
-#define TAB_COLOUR INITR_BLACKTAB
-//#define TAB_COLOUR INITR_GREENTAB
-```
-
-comment out all fonts except Font 1 and Font 2 (otherwise it will not fit in Nano flash memory)
-
-```
-#define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
-#define LOAD_FONT2  // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters
-//#define LOAD_FONT4  // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
-//#define LOAD_FONT6  // Font 6. Large 48 pixel font, needs ~2666 bytes in FLASH, only characters 1234567890:-.apm
-//#define LOAD_FONT7  // Font 7. 7 segment 48 pixel font, needs ~2438 bytes in FLASH, only characters 1234567890:.
-//#define LOAD_FONT8  // Font 8. Large 75 pixel font needs ~3256 bytes in FLASH, only characters 1234567890:-.
-```
