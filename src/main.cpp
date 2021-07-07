@@ -1,14 +1,15 @@
+#include <Arduino.h>
+
 /*
-thanks to:
+thanks to
 PowerCartel for smart battery routines - https://github.com/PowerCartel/PackProbe
 Bodmer for fast TFT library - https://github.com/Bodmer/TFT_ST7735
 Alain Aeropic - for BatMan inspiration - https://www.thingiverse.com/thing:4235767 
-
-This is a modification for read a battery info in serial port
 */
 
 #define VERSION   "v1.1"
-
+#include <TFT_ST7735.h> // Graphics and font library for ST7735 driver chip
+#include <SPI.h>
 #include <Wire.h>
 byte deviceAddress = 11;
 
@@ -41,25 +42,17 @@ byte deviceAddress = 11;
 #define CELL1_VOLTAGE            0x3F
 #define STATE_OF_HEALTH          0x4F
 #define DJI_SERIAL               0xD8  // String
+#define BUFF_SIZE 64
 
 #define bufferLen 32
 uint8_t i2cBuffer[bufferLen];
 
+TFT_ST7735 tft = TFT_ST7735();
+#include "dji_logo-48x48.h"
 
 #define TFT_BACKGROUND  0xD6BB
 
-void setup()
-{
-  Serial.begin(115200);
-
-  Wire.begin();
-  Wire.setClock(100000);
-
-  delay(2000);
-}
-
-uint8_t read_byte()
-{
+uint8_t read_byte(){
   while (1)
   {
     if (Wire.available())
@@ -69,10 +62,87 @@ uint8_t read_byte()
   }
 }
 
-void loop()
-{
-  uint8_t length_read = 0;
+int fetchWord(byte func){
+  Wire.beginTransmission(deviceAddress);
+  Wire.write(func);
+  Wire.endTransmission(false);
+  delay(1);// FIX wire bug
+  Wire.requestFrom(deviceAddress, 2, true);
   
+  uint8_t b1 = read_byte();
+  uint8_t b2 = read_byte();
+  Wire.endTransmission();
+  return (int)b1 | ((( int)b2) << 8);
+}
+
+uint8_t i2c_smbus_read_block ( uint8_t command, uint8_t* blockBuffer, uint8_t blockBufferLen ){
+  uint8_t x, num_bytes;
+  Wire.beginTransmission(deviceAddress);
+  Wire.write(command);
+  Wire.endTransmission(false);
+  delay(1);
+  Wire.requestFrom(deviceAddress, blockBufferLen, true);
+  
+  num_bytes = read_byte();
+  num_bytes = constrain(num_bytes, 0, blockBufferLen - 2);
+  for (x = 0; x < num_bytes - 1; x++) { // -1 because x=num_bytes-1 if x<y; last byte needs to be "nack"'d, x<y-1
+    blockBuffer[x] = read_byte();
+  }
+  blockBuffer[x++] = read_byte(); // this will nack the last byte and store it in x's num_bytes-1 address.
+  blockBuffer[x] = 0; // and null it at last_byte+1
+  Wire.endTransmission();
+  return num_bytes;
+}
+
+
+void drawIcon(const unsigned short* icon, int16_t x, int16_t y, int8_t width, int8_t height) {
+  uint16_t  pix_buffer[BUFF_SIZE];   // Pixel buffer (16 bits per pixel)
+
+  // Set up a window the right size to stream pixels into
+  tft.setAddrWindow(x, y, x + width - 1, y + height - 1);
+
+  // Work out the number whole buffers to send
+  uint16_t nb = ((uint16_t)height * width) / BUFF_SIZE;
+
+  // Fill and send "nb" buffers to TFT
+  for (int i = 0; i < nb; i++) {
+    for (int j = 0; j < BUFF_SIZE; j++) {
+      pix_buffer[j] = pgm_read_word(&icon[i * BUFF_SIZE + j]);
+    }
+    tft.pushColors(pix_buffer, BUFF_SIZE);
+  }
+
+  // Work out number of pixels not yet sent
+  uint16_t np = ((uint16_t)height * width) % BUFF_SIZE;
+
+  // Send any partial buffer left over
+  if (np) {
+    for (int i = 0; i < np; i++) pix_buffer[i] = pgm_read_word(&icon[nb * BUFF_SIZE + i]);
+    tft.pushColors(pix_buffer, np);
+  }
+}
+
+void setup(){
+  Serial.begin(115200);
+  Wire.begin();
+  Wire.setClock(100000);
+  tft.init();
+  tft.setRotation(0);	// portrait
+  tft.fillScreen(TFT_BLACK);
+  drawIcon(dji_logo, (tft.width() - Width)/2,      (tft.height() - Height)/2-40, Width, Height);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_BACKGROUND, TFT_BLACK);
+  tft.drawCentreString("Mavic Mini", 64, 68, 2);
+  tft.drawCentreString("battery info", 64, 90, 1);
+  tft.drawCentreString(VERSION, 64, 102, 1);
+  tft.drawCentreString("github.com/czipis", 64, 120, 1);
+
+  delay(3000);
+  tft.fillScreen(TFT_BACKGROUND);
+}
+
+void loop(){
+  uint8_t length_read = 0;
 
   Serial.print("Manufacturer Name: ");
   length_read = i2c_smbus_read_block(MFG_NAME, i2cBuffer, bufferLen);
@@ -144,6 +214,7 @@ void loop()
   uint8_t charge = fetchWord(RELATIVE_SOC);
   Serial.println(charge);
 
+
   Serial.print("Absolute Charge(%): ");
   Serial.println(fetchWord(ABSOLUTE_SOC));
 
@@ -190,6 +261,43 @@ void loop()
   Serial.println(fetchWord(CURRENT));
 
   Serial.println(".");
+
+  
+  drawIcon(dji_logo, (tft.width() - Width)/2,      0, Width, Height);
+
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_BLACK, TFT_BLACK);
+
+  tft.drawString("SERIAL", 3, 54, 1);
+  tft.drawRightString(djiserial, 126, 54, 1);
+  
+  tft.drawString("PRODUCED", 3, 54+15, 1);
+  tft.drawRightString(mfg_date, 126, 54+15, 1);
+  
+  tft.drawString("CYCLES", 3, 54+30, 1);
+  tft.drawNumber(cycles, 45, 54+30, 1);
+  tft.drawString("TEMP", 70, 54+30, 1);
+  tft.fillRect(102, 54+30 , 25, 10, TFT_BACKGROUND);
+  tft.drawFloat(temp, 1, 102, 54+30, 1);
+  
+  tft.drawString("VOLTS", 3, 54+45, 1);
+  tft.fillRect(40, 54+45 , 87, 10, TFT_BACKGROUND);
+  tft.drawRightString(cellsV, 126, 54+45, 1);
+
+  unsigned int batt_width = 110;
+  unsigned int batt_height = 20;
+  tft.drawRect(tft.width()/2 - batt_width/2, 130 , batt_width, batt_height, TFT_BLACK);
+  tft.drawRect(tft.width()/2 + batt_width/2 - 1 , 130+batt_height/4 , 5, batt_height/2, TFT_BLACK);
+  uint16_t color = TFT_RED;
+  if (charge > 25) color = TFT_ORANGE;
+  if (charge > 50) color = TFT_YELLOW;
+  if (charge > 75) color = TFT_DARKGREEN;
+  tft.fillRect(tft.width()/2 - batt_width/2 + 5, 130 + 2 , charge, batt_height-4, color);
+  String pct = String(charge) + '%';
+  str_len = pct.length() + 1; 
+  char p[str_len];
+  pct.toCharArray(p, str_len);
+  tft.drawString(p,54,132, 2);
 
   delay(1000);
 }
