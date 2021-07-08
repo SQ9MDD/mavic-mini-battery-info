@@ -7,7 +7,7 @@ Bodmer for fast TFT library - https://github.com/Bodmer/TFT_ST7735
 Alain Aeropic - for BatMan inspiration - https://www.thingiverse.com/thing:4235767 
 */
 
-#define VERSION   "v1.1"
+#define VERSION   ""
 #include <TFT_ST7735.h> // Graphics and font library for ST7735 driver chip
 #include <SPI.h>
 #include <Wire.h>
@@ -53,10 +53,8 @@ TFT_ST7735 tft = TFT_ST7735();
 #define TFT_BACKGROUND  0xD6BB
 
 uint8_t read_byte(){
-  while (1)
-  {
-    if (Wire.available())
-    {
+  while (1){
+    if (Wire.available()){
       return Wire.read();
     }
   }
@@ -135,7 +133,7 @@ void setup(){
   tft.drawCentreString("Mavic Mini", 64, 68, 2);
   tft.drawCentreString("battery info", 64, 90, 1);
   tft.drawCentreString(VERSION, 64, 102, 1);
-  tft.drawCentreString("github.com/czipis", 64, 120, 1);
+  //tft.drawCentreString("github.com/czipis", 64, 120, 1);
 
   delay(3000);
   tft.fillScreen(TFT_BACKGROUND);
@@ -267,27 +265,38 @@ void loop(){
 
   tft.setTextSize(1);
   tft.setTextColor(TFT_BLACK, TFT_BLACK);
+  
+  int base = 54;
+  int offsett = 12;
 
-  tft.drawString("SERIAL", 3, 54, 1);
+  tft.drawString("SERIAL", 3, base, 1);
   tft.drawRightString(djiserial, 126, 54, 1);
   
-  tft.drawString("PRODUCED", 3, 54+15, 1);
-  tft.drawRightString(mfg_date, 126, 54+15, 1);
+  tft.drawString("PRODUCED", 3, base+(offsett*1), 1);
+  tft.drawRightString(mfg_date, 126, base+(offsett*1), 1);
   
-  tft.drawString("CYCLES", 3, 54+30, 1);
-  tft.drawNumber(cycles, 45, 54+30, 1);
-  tft.drawString("TEMP", 70, 54+30, 1);
-  tft.fillRect(102, 54+30 , 25, 10, TFT_BACKGROUND);
-  tft.drawFloat(temp, 1, 102, 54+30, 1);
+  tft.drawString("CYCLES", 3, base+(offsett*2), 1);
+  tft.drawNumber(cycles, 45, base+(offsett*2), 1);
+  tft.drawString("TEMP", 70, base+(offsett*2), 1);
+  tft.fillRect(102, base+(offsett*2) , 25, 10, TFT_BACKGROUND);
+  tft.drawFloat(temp, 1, 102, base+(offsett*2), 1);
   
-  tft.drawString("VOLTS", 3, 54+45, 1);
-  tft.fillRect(40, 54+45 , 87, 10, TFT_BACKGROUND);
-  tft.drawRightString(cellsV, 126, 54+45, 1);
+  tft.drawString("VOLTS", 3, base+(offsett*3), 1);
+  tft.fillRect(40, base+(offsett*3) , 87, 10, TFT_BACKGROUND);
+  tft.drawRightString(cellsV, 126, base+(offsett*3), 1);
 
   // @Domell86 please test it
-  tft.drawString("REMAIN", 3, 54+60, 1);
-  tft.fillRect(40, 54+60 , 87, 10, TFT_BACKGROUND);
-  tft.drawRightString(fetchWord(REMAINING_CAPACITY), 126, 54+60, 1);  
+  tft.drawString("REMAIN", 3, 54+(offsett*4), 1);
+  tft.fillRect(40, 54+(offsett*4) , 87, 10, TFT_BACKGROUND);
+  tft.drawNumber(fetchWord(REMAINING_CAPACITY), 60, 54+(offsett*4), 1);  
+  tft.drawString("/", 85, 54+(offsett*4), 1);
+  tft.drawNumber(fetchWord(FULL_CHARGE_CAPACITY), 94, 54+(offsett*4), 1);
+
+  // battery condix
+  int bat_condix = map(fetchWord(FULL_CHARGE_CAPACITY),0,fetchWord(DESIGN_CAPACITY),0,100); 
+  tft.drawString("CONDIX", 3, 54+(offsett*5), 1);
+  tft.drawNumber(bat_condix, 60, 54+(offsett*5), 1);
+  tft.drawString("%", 75, 54+(offsett*5), 1);
   
   unsigned int batt_width = 110;
   unsigned int batt_height = 20;
