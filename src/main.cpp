@@ -284,6 +284,11 @@ void loop(){
   tft.fillRect(40, 54+45 , 87, 10, TFT_BACKGROUND);
   tft.drawRightString(cellsV, 126, 54+45, 1);
 
+  // @Domell86 please test it
+  tft.drawString("REMAIN", 3, 54+60, 1);
+  tft.fillRect(40, 54+60 , 87, 10, TFT_BACKGROUND);
+  tft.drawRightString(fetchWord(REMAINING_CAPACITY), 126, 54+60, 1);  
+  
   unsigned int batt_width = 110;
   unsigned int batt_height = 20;
   tft.drawRect(tft.width()/2 - batt_width/2, 130 , batt_width, batt_height, TFT_BLACK);
